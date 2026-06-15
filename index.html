@@ -97,6 +97,17 @@
   .feat-text p{font-size:12px;color:#6B7280;}
   .cta{background:#1D9E75;color:#fff;border:none;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:600;cursor:pointer;display:inline-block;text-decoration:none;}
   .vegvisir-wrap{margin-bottom:24px;}
+  .view-btn{background:#2A2F3F;color:#9CA3AF;border:none;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:600;cursor:pointer;}
+  .view-btn.active{background:#1D9E75;color:#fff;}
+  .cal-dn{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;font-size:12px;font-weight:600;}
+  .today-n{background:#1D9E75;color:#fff;}
+  .time-lbl{font-size:9px;color:#3A3F52;text-align:right;padding-right:4px;height:44px;display:flex;align-items:flex-start;padding-top:2px;}
+  .day-col{border-left:1px solid #1E2230;position:relative;min-height:528px;}
+  .day-col.today-col{background:rgba(29,158,117,0.04);}
+  .hour-line{border-top:1px solid #1E2230;height:44px;}
+  .cal-event{position:absolute;left:2px;right:2px;border-radius:4px;padding:2px 4px;font-size:9px;font-weight:600;overflow:hidden;cursor:pointer;border-left:2px solid;}
+  .now-line{position:absolute;left:0;right:0;height:1.5px;background:#E24B4A;z-index:10;}
+  .now-dot{position:absolute;left:-3px;top:-3px;width:6px;height:6px;background:#E24B4A;border-radius:50%;}
   @media(max-width:600px){
     .frame{padding:10px;}
     .phone{width:100%;max-width:375px;height:700px;}
@@ -261,9 +272,11 @@
       <div class="s" id="s-calendar">
         <div class="topbar">
           <span class="logo">Cal<span>ahead</span></span>
-          <div style="display:flex;gap:6px;margin-left:auto">
-            <button class="btn-new" style="background:#2A2F3F">Woche</button>
-            <button class="btn-new">Monat</button>
+          <div style="display:flex;gap:4px;margin-left:auto">
+            <button class="view-btn active" onclick="setCalView('week',this)">Woche</button>
+            <button class="view-btn" onclick="setCalView('work',this)">AW</button>
+            <button class="view-btn" onclick="setCalView('weekend',this)">WE</button>
+            <button class="view-btn" onclick="setCalView('month',this)">Monat</button>
           </div>
         </div>
         <div class="mbar">
@@ -273,34 +286,57 @@
         </div>
         <div class="cal-header">
           <button class="cal-nav">‹</button>
-          <span class="cal-title">Juni 2026</span>
+          <span class="cal-title" id="cal-title">16.06. – 22.06.2026</span>
           <button class="cal-nav">›</button>
         </div>
-        <div class="cal-days">
-          <div class="cal-day-hdr">Mo</div><div class="cal-day-hdr">Di</div><div class="cal-day-hdr">Mi</div>
-          <div class="cal-day-hdr">Do</div><div class="cal-day-hdr">Fr</div>
-          <div class="cal-day-hdr" style="color:#E24B4A">Sa</div><div class="cal-day-hdr" style="color:#E24B4A">So</div>
+
+        <!-- Week / Workweek / Weekend view -->
+        <div id="cal-week-view" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div id="cal-day-headers" class="cal-days" style="grid-template-columns:36px repeat(7,1fr)">
+            <div class="cal-day-hdr"></div>
+            <div class="cal-day-hdr">Mo<br><span class="cal-dn">16</span></div>
+            <div class="cal-day-hdr">Di<br><span class="cal-dn">17</span></div>
+            <div class="cal-day-hdr">Mi<br><span class="cal-dn today-n">18</span></div>
+            <div class="cal-day-hdr">Do<br><span class="cal-dn">19</span></div>
+            <div class="cal-day-hdr">Fr<br><span class="cal-dn">20</span></div>
+            <div class="cal-day-hdr" style="color:#6B7280">Sa<br><span class="cal-dn">21</span></div>
+            <div class="cal-day-hdr" style="color:#6B7280">So<br><span class="cal-dn">22</span></div>
+          </div>
+          <div style="flex:1;overflow-y:auto;position:relative">
+            <div id="cal-grid-week" style="display:grid;grid-template-columns:36px repeat(7,1fr);position:relative">
+              <!-- Time labels + grid lines -->
+              <div id="time-col"></div>
+              <div id="day-cols" style="display:contents"></div>
+            </div>
+          </div>
         </div>
-        <div class="cal-grid scroll" style="flex:1;align-content:start">
-          <div class="cal-cell" style="color:#6B7280"></div><div class="cal-cell" style="color:#6B7280"></div>
-          <div class="cal-cell" style="color:#6B7280"></div><div class="cal-cell" style="color:#6B7280"></div>
-          <div class="cal-cell" style="color:#6B7280"></div><div class="cal-cell" style="color:#6B7280"></div>
-          <div class="cal-cell" style="color:#6B7280">1</div>
-          <div class="cal-cell">2</div><div class="cal-cell">3</div><div class="cal-cell">4</div>
-          <div class="cal-cell">5</div><div class="cal-cell">6</div>
-          <div class="cal-cell" style="color:#6B7280">7</div><div class="cal-cell" style="color:#6B7280">8</div>
-          <div class="cal-cell">9</div><div class="cal-cell">10</div><div class="cal-cell">11</div>
-          <div class="cal-cell">12</div><div class="cal-cell">13</div>
-          <div class="cal-cell" style="color:#6B7280">14</div><div class="cal-cell" style="color:#6B7280">15</div>
-          <div class="cal-cell today">15</div>
-          <div class="cal-cell">16</div><div class="cal-cell">17</div><div class="cal-cell">18</div>
-          <div class="cal-cell">19</div>
-          <div class="cal-cell" style="color:#6B7280">20</div><div class="cal-cell" style="color:#6B7280">21</div>
-          <div class="cal-cell" style="position:relative">22<span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;background:#E24B4A;border-radius:50%;display:block"></span></div>
-          <div class="cal-cell">23</div><div class="cal-cell">24</div><div class="cal-cell">25</div><div class="cal-cell">26</div>
-          <div class="cal-cell" style="color:#6B7280">27</div><div class="cal-cell" style="color:#6B7280">28</div>
-          <div class="cal-cell">28</div><div class="cal-cell">29</div><div class="cal-cell">30</div>
+
+        <!-- Month view -->
+        <div id="cal-month-view" style="flex:1;display:none;flex-direction:column;overflow:hidden">
+          <div class="cal-days">
+            <div class="cal-day-hdr">Mo</div><div class="cal-day-hdr">Di</div><div class="cal-day-hdr">Mi</div>
+            <div class="cal-day-hdr">Do</div><div class="cal-day-hdr">Fr</div>
+            <div class="cal-day-hdr" style="color:#6B7280">Sa</div><div class="cal-day-hdr" style="color:#6B7280">So</div>
+          </div>
+          <div class="cal-grid" style="flex:1;align-content:start;overflow-y:auto">
+            <div class="cal-cell" style="color:#3A3F52">1</div><div class="cal-cell" style="color:#3A3F52">2</div>
+            <div class="cal-cell" style="color:#3A3F52">3</div><div class="cal-cell" style="color:#3A3F52">4</div>
+            <div class="cal-cell" style="color:#3A3F52">5</div><div class="cal-cell" style="color:#3A3F52">6</div>
+            <div class="cal-cell" style="color:#3A3F52">7</div>
+            <div class="cal-cell" style="color:#3A3F52">8</div><div class="cal-cell" style="color:#3A3F52">9</div>
+            <div class="cal-cell" style="color:#3A3F52">10</div><div class="cal-cell" style="color:#3A3F52">11</div>
+            <div class="cal-cell" style="color:#3A3F52">12</div><div class="cal-cell" style="color:#3A3F52">13</div>
+            <div class="cal-cell" style="color:#3A3F52">14</div>
+            <div class="cal-cell today">15</div><div class="cal-cell">16</div><div class="cal-cell">17</div>
+            <div class="cal-cell">18</div><div class="cal-cell">19</div>
+            <div class="cal-cell" style="color:#6B7280">20</div><div class="cal-cell" style="color:#6B7280">21</div>
+            <div class="cal-cell" style="position:relative">22<span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;background:#E24B4A;border-radius:50%;display:block"></span></div>
+            <div class="cal-cell">23</div><div class="cal-cell">24</div><div class="cal-cell">25</div><div class="cal-cell">26</div>
+            <div class="cal-cell" style="color:#6B7280">27</div><div class="cal-cell" style="color:#6B7280">28</div>
+            <div class="cal-cell">29</div><div class="cal-cell">30</div>
+          </div>
         </div>
+
         <div class="tabs">
           <button class="tab" onclick="showScreen('dashboard')"><span class="tab-icon">⊞</span><span class="tab-label">Dashboard</span></button>
           <button class="tab active" onclick="showScreen('calendar')"><span class="tab-icon">📅</span><span class="tab-label">Kalender</span></button>
@@ -453,7 +489,86 @@
 </div>
 
 <script>
-function showScreen(id){
+// Calendar view logic
+const HOURS_CAL = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21];
+const EVENTS = [
+  {title:'Zahnarzt Frank',col:0,start:9,dur:1,color:'#E63946',bg:'rgba(230,57,70,0.15)'},
+  {title:'Meeting Sabine',col:1,start:10,dur:1.5,color:'#7B4FD6',bg:'rgba(123,79,214,0.15)'},
+  {title:'TÜV Termin',col:2,start:12,dur:1,color:'#E24B4A',bg:'rgba(226,75,74,0.15)'},
+  {title:'Sport Sabine',col:3,start:17,dur:1.5,color:'#7B4FD6',bg:'rgba(123,79,214,0.15)'},
+  {title:'Call Frank',col:4,start:8,dur:0.5,color:'#E63946',bg:'rgba(230,57,70,0.15)'},
+];
+
+let calView = 'week';
+
+function setCalView(view, btn){
+  calView = view;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const wv = document.getElementById('cal-week-view');
+  const mv = document.getElementById('cal-month-view');
+  if(view==='month'){
+    wv.style.display='none'; mv.style.display='flex';
+    document.getElementById('cal-title').textContent='Juni 2026';
+  } else {
+    wv.style.display='flex'; mv.style.display='none';
+    renderWeekView(view);
+  }
+}
+
+function renderWeekView(view){
+  const days = view==='work'
+    ? [{d:'Mo',n:'16'},{d:'Di',n:'17'},{d:'Mi',n:'18',today:true},{d:'Do',n:'19'},{d:'Fr',n:'20'}]
+    : view==='weekend'
+    ? [{d:'Sa',n:'21',we:true},{d:'So',n:'22',we:true}]
+    : [{d:'Mo',n:'16'},{d:'Di',n:'17'},{d:'Mi',n:'18',today:true},{d:'Do',n:'19'},{d:'Fr',n:'20'},{d:'Sa',n:'21',we:true},{d:'So',n:'22',we:true}];
+
+  const cols = days.length;
+  document.getElementById('cal-title').textContent =
+    view==='weekend' ? '21.06. – 22.06.2026' :
+    view==='work' ? '16.06. – 20.06.2026' : '16.06. – 22.06.2026';
+
+  // Headers
+  const hdr = document.getElementById('cal-day-headers');
+  hdr.style.gridTemplateColumns = `36px repeat(${cols},1fr)`;
+  hdr.innerHTML = '<div class="cal-day-hdr"></div>' + days.map(d=>
+    `<div class="cal-day-hdr" style="${d.we?'color:#6B7280':''}">${d.d}<br><span class="cal-dn ${d.today?'today-n':''}">${d.n}</span></div>`
+  ).join('');
+
+  // Grid
+  const grid = document.getElementById('cal-grid-week');
+  grid.style.gridTemplateColumns = `36px repeat(${cols},1fr)`;
+  const HH=44;
+  const nowH = 14.5; // 14:30
+  let html = '';
+  // Time col
+  html += '<div>';
+  HOURS_CAL.forEach(h=>html+=`<div class="time-lbl">${h}:00</div>`);
+  html += '</div>';
+  // Day cols
+  days.forEach((d,ci)=>{
+    html += `<div class="day-col ${d.today?'today-col':''}" style="position:relative">`;
+    HOURS_CAL.forEach(()=>html+=`<div class="hour-line"></div>`);
+    // Now line on today
+    if(d.today){
+      const top=(nowH-HOURS_CAL[0])*HH;
+      html+=`<div class="now-line" style="top:${top}px"><div class="now-dot"></div></div>`;
+    }
+    // Events
+    EVENTS.filter(e=>e.col===ci).forEach(e=>{
+      const top=(e.start-HOURS_CAL[0])*HH;
+      const height=e.dur*HH-2;
+      html+=`<div class="cal-event" style="top:${top}px;height:${height}px;background:${e.bg};border-color:${e.color};color:${e.color}">${e.title}</div>`;
+    });
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+// Init calendar
+renderWeekView('week');
+
+
   document.querySelectorAll('.s').forEach(s=>s.classList.remove('active'));
   document.getElementById('s-'+id).classList.add('active');
 }
