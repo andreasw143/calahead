@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Calahead – Der Kalender, der mitdenkt.</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0D0F14;color:#F0F2F8;min-height:100vh;}
+  /* Phone frame */
+  .frame{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;gap:40px;flex-wrap:wrap;}
+  .phone{width:375px;height:750px;background:#0D0F14;border-radius:40px;border:8px solid #2A2F3F;overflow:hidden;position:relative;box-shadow:0 40px 80px rgba(0,0,0,0.6);}
+  .screen{width:100%;height:100%;overflow:hidden;position:relative;}
+  /* Screens */
+  .s{display:none;flex-direction:column;height:100%;position:absolute;top:0;left:0;width:100%;}
+  .s.active{display:flex;}
+  /* Topbar */
+  .topbar{display:flex;align-items:center;padding:16px;background:#0D0F14;border-bottom:1px solid #2A2F3F;gap:12px;flex-shrink:0;}
+  .logo{font-size:20px;font-weight:700;color:#1D9E75;}
+  .logo span{font-weight:300;color:#F0F2F8;}
+  .btn-new{background:#1D9E75;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;margin-left:auto;}
+  /* Member bar */
+  .mbar{display:flex;gap:8px;padding:10px 16px;background:#161921;border-bottom:1px solid #2A2F3F;overflow-x:auto;flex-shrink:0;}
+  .chip{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;border:1px solid #2A2F3F;background:#0D0F14;cursor:pointer;white-space:nowrap;font-size:12px;}
+  .chip.active{border-color:#1D9E75;background:rgba(29,158,117,0.1);}
+  .dot{width:8px;height:8px;border-radius:50%;}
+  /* Scroll */
+  .scroll{flex:1;overflow-y:auto;padding:16px;}
+  /* Stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+  .stat{background:#161921;border-radius:12px;padding:12px 8px;text-align:center;}
+  .stat-v{font-size:22px;font-weight:700;}
+  .stat-l{font-size:10px;color:#6B7280;margin-top:2px;}
+  /* Section */
+  .sec{font-size:12px;font-weight:600;color:#6B7280;letter-spacing:0.5px;margin-bottom:10px;margin-top:4px;}
+  .sec-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .sec-link{font-size:12px;color:#1D9E75;}
+  /* Steps */
+  .step{display:flex;gap:10px;padding:10px 12px;background:#161921;border-radius:10px;margin-bottom:8px;border:1px solid #2A2F3F;cursor:pointer;}
+  .step:hover{border-color:#1D9E75;}
+  .udot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+  .step-info{flex:1;min-width:0;}
+  .step-title{font-size:13px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .step-sub{font-size:11px;color:#6B7280;}
+  .step-days{font-size:11px;font-weight:600;white-space:nowrap;}
+  /* Objects */
+  .obj{display:flex;align-items:center;gap:12px;padding:12px;background:#161921;border-radius:12px;margin-bottom:8px;border:1px solid #2A2F3F;cursor:pointer;}
+  .obj:hover{border-color:#1D9E75;}
+  .obj-icon{width:44px;height:44px;border-radius:10px;background:#1D9E752A;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+  .obj-name{font-size:14px;font-weight:600;}
+  .obj-sub{font-size:11px;color:#6B7280;margin-top:2px;}
+  .badge{padding:3px 8px;border-radius:99px;font-size:10px;font-weight:600;margin-left:auto;}
+  /* Tabbar */
+  .tabs{display:flex;background:#161921;border-top:1px solid #2A2F3F;padding-bottom:env(safe-area-inset-bottom,0);}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;cursor:pointer;gap:3px;border:none;background:none;}
+  .tab-icon{font-size:20px;}
+  .tab-label{font-size:10px;color:#6B7280;}
+  .tab.active .tab-label{color:#1D9E75;}
+  .tab.active .tab-icon{filter:drop-shadow(0 0 4px #1D9E75);}
+  /* Calendar */
+  .cal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#161921;border-bottom:1px solid #2A2F3F;flex-shrink:0;}
+  .cal-nav{background:none;border:none;color:#1D9E75;font-size:20px;cursor:pointer;padding:4px 8px;}
+  .cal-title{font-size:14px;font-weight:600;}
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr);background:#161921;border-bottom:1px solid #2A2F3F;flex-shrink:0;}
+  .cal-day-hdr{text-align:center;padding:8px 0;font-size:11px;color:#6B7280;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:8px;}
+  .cal-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:50%;cursor:pointer;}
+  .cal-cell:hover{background:#2A2F3F;}
+  .cal-cell.today{background:#1D9E75;color:#fff;font-weight:700;}
+  .cal-cell.has-event::after{content:'';display:block;width:4px;height:4px;background:#1D9E75;border-radius:50%;position:absolute;bottom:2px;}
+  .cal-cell{position:relative;}
+  /* Add screen */
+  .add-types{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+  .type-btn{width:calc(50% - 4px);display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;border:1.5px solid #2A2F3F;background:#161921;cursor:pointer;font-size:13px;font-weight:500;color:#F0F2F8;}
+  .type-btn:hover,.type-btn.sel{border-color:#1D9E75;background:rgba(29,158,117,0.1);color:#1D9E75;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:11px;color:#6B7280;margin-bottom:4px;font-weight:600;letter-spacing:0.3px;}
+  .field input{width:100%;background:#161921;border:1px solid #2A2F3F;border-radius:8px;padding:10px 12px;font-size:14px;color:#F0F2F8;outline:none;}
+  .field input:focus{border-color:#1D9E75;}
+  .save-btn{width:100%;background:#1D9E75;color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;}
+  .save-btn:hover{background:#0F6E56;}
+  /* Detail */
+  .detail-header{padding:16px;background:#161921;border-bottom:1px solid #2A2F3F;flex-shrink:0;}
+  .detail-name{font-size:18px;font-weight:700;margin-bottom:4px;}
+  .detail-sub{font-size:12px;color:#6B7280;}
+  .progress-bar{height:4px;background:#2A2F3F;border-radius:2px;margin-top:12px;overflow:hidden;}
+  .progress-fill{height:100%;background:#1D9E75;border-radius:2px;transition:width 0.5s;}
+  /* Info sidebar */
+  .info{max-width:400px;}
+  .info h1{font-size:32px;font-weight:700;margin-bottom:8px;}
+  .info h1 em{color:#1D9E75;font-style:normal;}
+  .info p{color:#6B7280;font-size:16px;line-height:1.6;margin-bottom:20px;}
+  .info-feat{display:flex;flex-direction:column;gap:12px;margin-bottom:32px;}
+  .feat{display:flex;gap:12px;align-items:flex-start;}
+  .feat-icon{width:36px;height:36px;background:rgba(29,158,117,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .feat-text h3{font-size:14px;font-weight:600;margin-bottom:2px;}
+  .feat-text p{font-size:12px;color:#6B7280;}
+  .cta{background:#1D9E75;color:#fff;border:none;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:600;cursor:pointer;display:inline-block;text-decoration:none;}
+  .vegvisir-wrap{margin-bottom:24px;}
+  @media(max-width:600px){
+    .frame{padding:10px;}
+    .phone{width:100%;max-width:375px;height:700px;}
+    .info{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+  <!-- Info -->
+  <div class="info">
+    <div class="vegvisir-wrap">
+      <svg width="80" height="80" viewBox="-40 -40 80 80">
+        <circle cx="0" cy="0" r="36" stroke="#1D9E75" stroke-width="1.5" fill="none"/>
+        <circle cx="0" cy="0" r="27" stroke="#1D9E75" stroke-width="0.8" fill="none" stroke-dasharray="3 2"/>
+        <circle cx="0" cy="0" r="3" fill="#1D9E75"/>
+        <line x1="0" y1="-4" x2="0" y2="-24" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/>
+        <line x1="0" y1="-21" x2="4" y2="-17" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/>
+        <line x1="4" y1="-17" x2="0" y2="-13" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/>
+        <line x1="0" y1="-13" x2="-4" y2="-17" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/>
+        <line x1="-4" y1="-17" x2="0" y2="-21" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/>
+        <line x1="-4" y1="-17" x2="5" y2="-10" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/>
+        <line x1="4" y1="-17" x2="-5" y2="-10" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/>
+        <g transform="rotate(45)"><line x1="0" y1="-4" x2="0" y2="-24" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="-4" y1="-16" x2="0" y2="-22" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="4" y1="-16" x2="0" y2="-22" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/></g>
+        <g transform="rotate(90)"><line x1="0" y1="-4" x2="0" y2="-24" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="0" y1="-21" x2="5" y2="-17" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="-17" x2="0" y2="-14" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="0" y1="-14" x2="5" y2="-9" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/></g>
+        <g transform="rotate(135)"><line x1="0" y1="-4" x2="0" y2="-24" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="0" y1="-19" x2="5" y2="-14" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/></g>
+        <g transform="rotate(180)"><line x1="0" y1="-4" x2="0" y2="-24" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="0" y1="-14" x2="-5" y2="-21" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="0" y1="-14" x2="5" y2="-21" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/></g>
+        <g transform="rotate(225)"><line x1="0" y1="-4" x2="0" y2="-24" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="-5" y1="-12" x2="5" y2="-18" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/></g>
+        <g transform="rotate(270)"><line x1="0" y1="-4" x2="0" y2="-24" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="-4" y1="-21" x2="4" y2="-17" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="4" y1="-17" x2="-4" y2="-13" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/><line x1="-4" y1="-13" x2="4" y2="-9" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/></g>
+        <g transform="rotate(315)"><line x1="0" y1="-4" x2="0" y2="-24" stroke="#1D9E75" stroke-width="2" stroke-linecap="round"/></g>
+        <circle cx="0" cy="-27" r="2" fill="#1D9E75"/>
+        <g transform="rotate(45)"><circle cx="0" cy="-27" r="2" fill="#1D9E75"/></g>
+        <g transform="rotate(90)"><circle cx="0" cy="-27" r="2" fill="#1D9E75"/></g>
+        <g transform="rotate(135)"><circle cx="0" cy="-27" r="2" fill="#1D9E75"/></g>
+        <g transform="rotate(180)"><circle cx="0" cy="-27" r="2" fill="#1D9E75"/></g>
+        <g transform="rotate(225)"><circle cx="0" cy="-27" r="2" fill="#1D9E75"/></g>
+        <g transform="rotate(270)"><circle cx="0" cy="-27" r="2" fill="#1D9E75"/></g>
+        <g transform="rotate(315)"><circle cx="0" cy="-27" r="2" fill="#1D9E75"/></g>
+      </svg>
+    </div>
+    <h1>Cal<em>ahead</em></h1>
+    <p>Der Kalender, der mitdenkt. Für TÜV-Fristen, Pässe, Versicherungen und alle Termine deiner Familie.</p>
+    <div class="info-feat">
+      <div class="feat"><div class="feat-icon">📅</div><div class="feat-text"><h3>Familienkalender</h3><p>Jedes Mitglied hat seinen eigenen Bereich</p></div></div>
+      <div class="feat"><div class="feat-icon">🚗</div><div class="feat-text"><h3>Objektverwaltung</h3><p>Auto, Geräte, Pässe – alles automatisch</p></div></div>
+      <div class="feat"><div class="feat-icon">⏰</div><div class="feat-text"><h3>Intelligente Fristen</h3><p>Erinnerungen bevor es zu spät ist</p></div></div>
+      <div class="feat"><div class="feat-icon">📺</div><div class="feat-text"><h3>TV-Dashboard</h3><p>Alle Termine auf dem Wohnzimmer-Fernseher</p></div></div>
+    </div>
+    <p style="font-size:13px;color:#3A3F52;margin-bottom:12px;">← Interaktive Demo – einfach ausprobieren!</p>
+    <a href="mailto:andreas@werner-klan.de" class="cta">Frühen Zugang anfragen</a>
+  </div>
+
+  <!-- Phone -->
+  <div class="phone">
+    <div class="screen">
+
+      <!-- DASHBOARD -->
+      <div class="s active" id="s-dashboard">
+        <div class="topbar">
+          <span class="logo">Cal<span>ahead</span></span>
+          <button class="btn-new" onclick="showScreen('add')">＋ Neu</button>
+        </div>
+        <div class="mbar">
+          <div class="chip active"><div class="dot" style="background:#1D9E75"></div>Alle</div>
+          <div class="chip"><div class="dot" style="background:#E63946"></div>Frank</div>
+          <div class="chip"><div class="dot" style="background:#7B4FD6"></div>Sabine</div>
+          <div class="chip"><div class="dot" style="background:#F4800B"></div>Lena</div>
+        </div>
+        <div class="scroll">
+          <div class="stats">
+            <div class="stat"><div class="stat-v" style="color:#E24B4A">3</div><div class="stat-l">Kritisch</div></div>
+            <div class="stat"><div class="stat-v" style="color:#F4800B">2</div><div class="stat-l">Bald</div></div>
+            <div class="stat"><div class="stat-v" style="color:#1D9E75">5</div><div class="stat-l">Im Blick</div></div>
+            <div class="stat"><div class="stat-v" style="color:#444">4</div><div class="stat-l">Gesamt</div></div>
+          </div>
+          <div class="sec-row"><span class="sec">DRINGENDSTE SCHRITTE</span><span class="sec-link" onclick="showScreen('list')">Alle anzeigen →</span></div>
+          <div class="step" onclick="showScreen('detail')">
+            <div class="udot" style="background:#E24B4A"></div>
+            <div class="step-info">
+              <div class="step-title">Werkstatttermin buchen</div>
+              <div class="step-sub">🚗 VW Golf · Frank</div>
+            </div>
+            <div class="step-days" style="color:#E24B4A">12T überfällig</div>
+          </div>
+          <div class="step">
+            <div class="udot" style="background:#E24B4A"></div>
+            <div class="step-info">
+              <div class="step-title">Gästeliste & Einladungen</div>
+              <div class="step-sub">🎂 Geburtstag Max · Sabine</div>
+            </div>
+            <div class="step-days" style="color:#E24B4A">11T überfällig</div>
+          </div>
+          <div class="step">
+            <div class="udot" style="background:#F4800B"></div>
+            <div class="step-info">
+              <div class="step-title">Vergleichsangebote einholen</div>
+              <div class="step-sub">📋 KfZ-Versicherung · Frank</div>
+            </div>
+            <div class="step-days" style="color:#F4800B">heute</div>
+          </div>
+          <div class="step">
+            <div class="udot" style="background:#F4800B"></div>
+            <div class="step-info">
+              <div class="step-title">Location / Aktivität buchen</div>
+              <div class="step-sub">🎂 Geburtstag Max · Sabine</div>
+            </div>
+            <div class="step-days" style="color:#F4800B">in 3 Tagen</div>
+          </div>
+          <div class="step">
+            <div class="udot" style="background:#1D9E75"></div>
+            <div class="step-info">
+              <div class="step-title">Fahrzeug vorab prüfen</div>
+              <div class="step-sub">🚗 VW Golf · Frank</div>
+            </div>
+            <div class="step-days" style="color:#1D9E75">in 9 Tagen</div>
+          </div>
+          <div class="sec" style="margin-top:8px">ALLE OBJEKTE</div>
+          <div class="obj" onclick="showScreen('detail')">
+            <div class="obj-icon">🚗</div>
+            <div style="flex:1">
+              <div class="obj-name">VW Golf <span style="font-size:10px;background:#E63946;color:#fff;padding:2px 6px;border-radius:4px;font-weight:600">MF</span></div>
+              <div class="obj-sub">Fälligkeit: 12.07.2026</div>
+            </div>
+            <div class="badge" style="background:#E24B4A22;color:#E24B4A">in 4 Wo</div>
+          </div>
+          <div class="obj">
+            <div class="obj-icon">🎂</div>
+            <div style="flex:1">
+              <div class="obj-name">Geburtstag Max <span style="font-size:10px;background:#7B4FD6;color:#fff;padding:2px 6px;border-radius:4px;font-weight:600">SA</span></div>
+              <div class="obj-sub">Fälligkeit: 20.06.2026</div>
+            </div>
+            <div class="badge" style="background:#E24B4A22;color:#E24B4A">in 5 Ta</div>
+          </div>
+          <div class="obj">
+            <div class="obj-icon">📋</div>
+            <div style="flex:1">
+              <div class="obj-name">KfZ-Versicherung <span style="font-size:10px;background:#E63946;color:#fff;padding:2px 6px;border-radius:4px;font-weight:600">MF</span></div>
+              <div class="obj-sub">Fälligkeit: 01.07.2026</div>
+            </div>
+            <div class="badge" style="background:#F4800B22;color:#F4800B">in 2 Wo</div>
+          </div>
+          <div class="obj">
+            <div class="obj-icon">🪪</div>
+            <div style="flex:1">
+              <div class="obj-name">Lena – Personalausweis <span style="font-size:10px;background:#F4800B;color:#fff;padding:2px 6px;border-radius:4px;font-weight:600">LE</span></div>
+              <div class="obj-sub">Fälligkeit: 15.09.2026</div>
+            </div>
+            <div class="badge" style="background:#1D9E7522;color:#1D9E75">in 3 Mo</div>
+          </div>
+          <div style="height:20px"></div>
+        </div>
+        <div class="tabs">
+          <button class="tab active" onclick="showScreen('dashboard')"><span class="tab-icon">⊞</span><span class="tab-label">Dashboard</span></button>
+          <button class="tab" onclick="showScreen('calendar')"><span class="tab-icon">📅</span><span class="tab-label">Kalender</span></button>
+          <button class="tab" onclick="showScreen('add')"><span class="tab-icon">＋</span><span class="tab-label">Neu</span></button>
+          <button class="tab" onclick="showScreen('list')"><span class="tab-icon">☰</span><span class="tab-label">Liste</span></button>
+          <button class="tab"><span class="tab-icon">👨‍👩‍👧</span><span class="tab-label">Familie</span></button>
+        </div>
+      </div>
+
+      <!-- CALENDAR -->
+      <div class="s" id="s-calendar">
+        <div class="topbar">
+          <span class="logo">Cal<span>ahead</span></span>
+          <div style="display:flex;gap:6px;margin-left:auto">
+            <button class="btn-new" style="background:#2A2F3F">Woche</button>
+            <button class="btn-new">Monat</button>
+          </div>
+        </div>
+        <div class="mbar">
+          <div class="chip active"><div class="dot" style="background:#1D9E75"></div>Alle</div>
+          <div class="chip"><div class="dot" style="background:#E63946"></div>Frank</div>
+          <div class="chip"><div class="dot" style="background:#7B4FD6"></div>Sabine</div>
+        </div>
+        <div class="cal-header">
+          <button class="cal-nav">‹</button>
+          <span class="cal-title">Juni 2026</span>
+          <button class="cal-nav">›</button>
+        </div>
+        <div class="cal-days">
+          <div class="cal-day-hdr">Mo</div><div class="cal-day-hdr">Di</div><div class="cal-day-hdr">Mi</div>
+          <div class="cal-day-hdr">Do</div><div class="cal-day-hdr">Fr</div>
+          <div class="cal-day-hdr" style="color:#E24B4A">Sa</div><div class="cal-day-hdr" style="color:#E24B4A">So</div>
+        </div>
+        <div class="cal-grid scroll" style="flex:1;align-content:start">
+          <div class="cal-cell" style="color:#6B7280"></div><div class="cal-cell" style="color:#6B7280"></div>
+          <div class="cal-cell" style="color:#6B7280"></div><div class="cal-cell" style="color:#6B7280"></div>
+          <div class="cal-cell" style="color:#6B7280"></div><div class="cal-cell" style="color:#6B7280"></div>
+          <div class="cal-cell" style="color:#6B7280">1</div>
+          <div class="cal-cell">2</div><div class="cal-cell">3</div><div class="cal-cell">4</div>
+          <div class="cal-cell">5</div><div class="cal-cell">6</div>
+          <div class="cal-cell" style="color:#6B7280">7</div><div class="cal-cell" style="color:#6B7280">8</div>
+          <div class="cal-cell">9</div><div class="cal-cell">10</div><div class="cal-cell">11</div>
+          <div class="cal-cell">12</div><div class="cal-cell">13</div>
+          <div class="cal-cell" style="color:#6B7280">14</div><div class="cal-cell" style="color:#6B7280">15</div>
+          <div class="cal-cell today">15</div>
+          <div class="cal-cell">16</div><div class="cal-cell">17</div><div class="cal-cell">18</div>
+          <div class="cal-cell">19</div>
+          <div class="cal-cell" style="color:#6B7280">20</div><div class="cal-cell" style="color:#6B7280">21</div>
+          <div class="cal-cell" style="position:relative">22<span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;background:#E24B4A;border-radius:50%;display:block"></span></div>
+          <div class="cal-cell">23</div><div class="cal-cell">24</div><div class="cal-cell">25</div><div class="cal-cell">26</div>
+          <div class="cal-cell" style="color:#6B7280">27</div><div class="cal-cell" style="color:#6B7280">28</div>
+          <div class="cal-cell">28</div><div class="cal-cell">29</div><div class="cal-cell">30</div>
+        </div>
+        <div class="tabs">
+          <button class="tab" onclick="showScreen('dashboard')"><span class="tab-icon">⊞</span><span class="tab-label">Dashboard</span></button>
+          <button class="tab active" onclick="showScreen('calendar')"><span class="tab-icon">📅</span><span class="tab-label">Kalender</span></button>
+          <button class="tab" onclick="showScreen('add')"><span class="tab-icon">＋</span><span class="tab-label">Neu</span></button>
+          <button class="tab" onclick="showScreen('list')"><span class="tab-icon">☰</span><span class="tab-label">Liste</span></button>
+          <button class="tab"><span class="tab-icon">👨‍👩‍👧</span><span class="tab-label">Familie</span></button>
+        </div>
+      </div>
+
+      <!-- LIST -->
+      <div class="s" id="s-list">
+        <div class="topbar">
+          <span class="logo">Cal<span>ahead</span></span>
+        </div>
+        <div class="scroll">
+          <div class="sec" style="color:#E24B4A">● ÜBERFÄLLIG</div>
+          <div class="step" style="border-color:#E24B4A22">
+            <div class="udot" style="background:#E24B4A"></div>
+            <div class="step-info"><div class="step-title">Werkstatttermin buchen</div><div class="step-sub">🚗 VW Golf · 01.06.2026</div></div>
+            <div class="step-days" style="color:#E24B4A">12T</div>
+          </div>
+          <div class="step" style="border-color:#E24B4A22">
+            <div class="udot" style="background:#E24B4A"></div>
+            <div class="step-info"><div class="step-title">Gästeliste & Einladungen</div><div class="step-sub">🎂 Geburtstag Max · 04.06.2026</div></div>
+            <div class="step-days" style="color:#E24B4A">11T</div>
+          </div>
+          <div class="step" style="border-color:#E24B4A22">
+            <div class="udot" style="background:#E24B4A"></div>
+            <div class="step-info"><div class="step-title">Fahrzeug vorab prüfen</div><div class="step-sub">🚗 VW Golf · 08.06.2026</div></div>
+            <div class="step-days" style="color:#E24B4A">7T</div>
+          </div>
+          <div class="sec" style="color:#F4800B;margin-top:12px">● BALD</div>
+          <div class="step">
+            <div class="udot" style="background:#F4800B"></div>
+            <div class="step-info"><div class="step-title">Vergleichsangebote einholen</div><div class="step-sub">📋 KfZ-Versicherung · 15.06.2026</div></div>
+            <div class="step-days" style="color:#F4800B">heute</div>
+          </div>
+          <div class="step">
+            <div class="udot" style="background:#F4800B"></div>
+            <div class="step-info"><div class="step-title">Location buchen</div><div class="step-sub">🎂 Geburtstag Max · 18.06.2026</div></div>
+            <div class="step-days" style="color:#F4800B">3T</div>
+          </div>
+          <div class="sec" style="color:#1D9E75;margin-top:12px">● IM BLICK</div>
+          <div class="step">
+            <div class="udot" style="background:#1D9E75"></div>
+            <div class="step-info"><div class="step-title">TÜV-Termin buchen</div><div class="step-sub">🚗 VW Golf · 28.06.2026</div></div>
+            <div class="step-days" style="color:#1D9E75">13T</div>
+          </div>
+          <div style="height:20px"></div>
+        </div>
+        <div class="tabs">
+          <button class="tab" onclick="showScreen('dashboard')"><span class="tab-icon">⊞</span><span class="tab-label">Dashboard</span></button>
+          <button class="tab" onclick="showScreen('calendar')"><span class="tab-icon">📅</span><span class="tab-label">Kalender</span></button>
+          <button class="tab" onclick="showScreen('add')"><span class="tab-icon">＋</span><span class="tab-label">Neu</span></button>
+          <button class="tab active"><span class="tab-icon">☰</span><span class="tab-label">Liste</span></button>
+          <button class="tab"><span class="tab-icon">👨‍👩‍👧</span><span class="tab-label">Familie</span></button>
+        </div>
+      </div>
+
+      <!-- ADD -->
+      <div class="s" id="s-add">
+        <div class="topbar">
+          <button onclick="showScreen('dashboard')" style="background:none;border:none;color:#1D9E75;font-size:20px;cursor:pointer">←</button>
+          <span class="logo" style="margin-left:8px">Objekt hinzufügen</span>
+        </div>
+        <div class="scroll">
+          <div class="sec">WAS MÖCHTEST DU HINZUFÜGEN?</div>
+          <div class="add-types">
+            <button class="type-btn sel" onclick="selectType(this)">🚗 PKW / Auto</button>
+            <button class="type-btn" onclick="selectType(this)">🚲 Fahrrad</button>
+            <button class="type-btn" onclick="selectType(this)">🏠 Wohnung / Haus</button>
+            <button class="type-btn" onclick="selectType(this)">🫧 Waschmaschine</button>
+            <button class="type-btn" onclick="selectType(this)">☕ Kaffeemaschine</button>
+            <button class="type-btn" onclick="selectType(this)">💻 PC / Notebook</button>
+            <button class="type-btn" onclick="selectType(this)">🪪 Person</button>
+            <button class="type-btn" onclick="selectType(this)">📋 Vertrag / Abo</button>
+            <button class="type-btn" onclick="selectType(this)">❤️ Gesundheit</button>
+            <button class="type-btn" onclick="selectType(this)">🧾 Firma</button>
+          </div>
+          <div class="sec">DETAILS</div>
+          <div style="background:#161921;border-radius:12px;padding:16px;border:1px solid #2A2F3F">
+            <div class="field"><label>Bezeichnung *</label><input type="text" placeholder="z.B. Franks VW Golf" id="obj-name"/></div>
+            <div class="field"><label>Baujahr</label><input type="number" placeholder="z.B. 2018" /></div>
+            <div class="field"><label>Letzter TÜV</label><input type="text" placeholder="TT.MM.JJJJ" /></div>
+            <div class="field"><label>Letzter Service</label><input type="text" placeholder="TT.MM.JJJJ" /></div>
+            <div class="field"><label>Versicherung läuft ab</label><input type="text" placeholder="TT.MM.JJJJ" /></div>
+          </div>
+          <button class="save-btn" onclick="saveDemo()">✦ Objekt & Termine anlegen</button>
+          <div style="height:20px"></div>
+        </div>
+        <div class="tabs">
+          <button class="tab" onclick="showScreen('dashboard')"><span class="tab-icon">⊞</span><span class="tab-label">Dashboard</span></button>
+          <button class="tab" onclick="showScreen('calendar')"><span class="tab-icon">📅</span><span class="tab-label">Kalender</span></button>
+          <button class="tab active"><span class="tab-icon">＋</span><span class="tab-label">Neu</span></button>
+          <button class="tab" onclick="showScreen('list')"><span class="tab-icon">☰</span><span class="tab-label">Liste</span></button>
+          <button class="tab"><span class="tab-icon">👨‍👩‍👧</span><span class="tab-label">Familie</span></button>
+        </div>
+      </div>
+
+      <!-- DETAIL -->
+      <div class="s" id="s-detail">
+        <div class="topbar">
+          <button onclick="showScreen('dashboard')" style="background:none;border:none;color:#1D9E75;font-size:20px;cursor:pointer">←</button>
+          <span style="font-size:22px;margin:0 8px">🚗</span>
+          <div>
+            <div style="font-size:15px;font-weight:700">VW Golf</div>
+            <div style="font-size:11px;color:#6B7280">Auto · Frank</div>
+          </div>
+        </div>
+        <div class="detail-header">
+          <div class="detail-sub">TÜV-Fälligkeit: 12.07.2026</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:25%"></div></div>
+          <div style="font-size:11px;color:#6B7280;margin-top:4px">1 / 4 erledigt</div>
+        </div>
+        <div class="scroll">
+          <div class="sec">OFFENE SCHRITTE</div>
+          <div class="step" style="border-color:#E24B4A">
+            <div class="udot" style="background:#E24B4A"></div>
+            <div class="step-info"><div class="step-title">Werkstatttermin buchen</div><div class="step-sub">Wartezeit 2–3 Wochen einplanen.</div></div>
+            <div class="step-days" style="color:#E24B4A">12T überfällig</div>
+          </div>
+          <div class="step">
+            <div class="udot" style="background:#1D9E75"></div>
+            <div class="step-info"><div class="step-title">Fahrzeug vorab prüfen</div><div class="step-sub">Bremsen, Beleuchtung, Unterboden.</div></div>
+            <div class="step-days" style="color:#1D9E75">in 9T</div>
+          </div>
+          <div class="step">
+            <div class="udot" style="background:#1D9E75"></div>
+            <div class="step-info"><div class="step-title">TÜV-Termin buchen</div><div class="step-sub">Online buchbar. Ca. 1 Woche Wartezeit.</div></div>
+            <div class="step-days" style="color:#1D9E75">in 13T</div>
+          </div>
+          <div class="sec" style="margin-top:8px">ERLEDIGT</div>
+          <div class="step" style="opacity:0.4">
+            <div class="udot" style="background:#1D9E75"></div>
+            <div class="step-info"><div class="step-title" style="text-decoration:line-through">Anmeldung / Zulassung prüfen</div><div class="step-sub">✓ Erledigt</div></div>
+          </div>
+          <div style="height:20px"></div>
+        </div>
+        <div class="tabs">
+          <button class="tab" onclick="showScreen('dashboard')"><span class="tab-icon">⊞</span><span class="tab-label">Dashboard</span></button>
+          <button class="tab" onclick="showScreen('calendar')"><span class="tab-icon">📅</span><span class="tab-label">Kalender</span></button>
+          <button class="tab" onclick="showScreen('add')"><span class="tab-icon">＋</span><span class="tab-label">Neu</span></button>
+          <button class="tab" onclick="showScreen('list')"><span class="tab-icon">☰</span><span class="tab-label">Liste</span></button>
+          <button class="tab"><span class="tab-icon">👨‍👩‍👧</span><span class="tab-label">Familie</span></button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function showScreen(id){
+  document.querySelectorAll('.s').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+}
+function selectType(btn){
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+function saveDemo(){
+  const name=document.getElementById('obj-name').value||'Neues Objekt';
+  alert('✅ „'+name+'" wurde angelegt!\n\nIn der vollständigen App werden jetzt automatisch alle relevanten Termine generiert.');
+  showScreen('dashboard');
+}
+</script>
+</body>
+</html>
